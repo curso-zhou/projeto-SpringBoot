@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Auth Demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root { font-family: system-ui, Arial, sans-serif; color-scheme: light dark; }
+    body { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.8rem; }
+    form { border: 1px solid #8884; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; }
+    fieldset { border: none; padding: 0; margin: 0 0 1rem; }
+    label { display: block; font-weight: 600; margin-top: .5rem; }
+    input { width: 100%; padding: .55rem .6rem; margin-top: .2rem; box-sizing: border-box; }
+    button { cursor: pointer; padding: .6rem 1.1rem; border: 1px solid #4446; border-radius: 6px; background: #2563eb; color: #fff; font-weight: 600; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .card { flex: 1 1 320px; }
+    pre { background: #1112; padding: .75rem 1rem; border-radius: 6px; max-height: 260px; overflow: auto; }
+    .ok { color: #15803d; }
+    .err { color: #dc2626; }
+    footer { margin-top: 3rem; font-size: .8rem; opacity: .6; }
+  </style>
+</head>
+<body>
+  <h1>Autenticação - Demo</h1>
+  <p>Use os formulários abaixo para Registrar e depois realizar o Login. Banco H2 em memória: dados somem ao reiniciar.</p>
+  <div class="row">
+    <div class="card">
+      <form id="formRegister">
+        <h2>Registro</h2>
+        <fieldset>
+          <label>Nome
+            <input name="nome" required maxlength="120" />
+          </label>
+          <label>Email
+            <input name="email" type="email" required />
+          </label>
+          <label>Senha
+            <input name="senha" type="password" required minlength="6" />
+          </label>
+        </fieldset>
+        <button type="submit">Registrar</button>
+      </form>
+      <h3>Resposta Registro</h3>
+      <pre id="outRegister">(aguardando)</pre>
+    </div>
+    <div class="card">
+      <form id="formLogin">
+        <h2>Login</h2>
+        <fieldset>
+          <label>Email
+            <input name="email" type="email" required />
+          </label>
+          <label>Senha
+            <input name="senha" type="password" required />
+          </label>
+        </fieldset>
+        <button type="submit">Login</button>
+      </form>
+      <h3>Resposta Login</h3>
+      <pre id="outLogin">(aguardando)</pre>
+    </div>
+  </div>
+  <footer>Demo simples - Spring Boot + Fetch API</footer>
+  <script>
+    async function postJson(url, data) {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      let bodyText;
+      try { bodyText = await resp.json(); } catch { bodyText = await resp.text(); }
+      return { status: resp.status, body: bodyText };
+    }
+
+    const formRegister = document.getElementById('formRegister');
+    const outRegister = document.getElementById('outRegister');
+    formRegister.addEventListener('submit', async e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(formRegister).entries());
+      outRegister.textContent = 'Enviando...';
+      try {
+        const res = await postJson('/api/auth/register', data);
+        outRegister.textContent = JSON.stringify(res, null, 2);
+        if (res.status === 201) {
+          const loginForm = document.getElementById('formLogin');
+          loginForm.email.value = data.email;
+          loginForm.senha.value = data.senha;
+        }
+      } catch (err) {
+        outRegister.textContent = 'Erro: ' + err;
+      }
+    });
+
+    const formLogin = document.getElementById('formLogin');
+    const outLogin = document.getElementById('outLogin');
+    formLogin.addEventListener('submit', async e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(formLogin).entries());
+      outLogin.textContent = 'Enviando...';
+      try {
+        const res = await postJson('/api/auth/login', data);
+        outLogin.textContent = JSON.stringify(res, null, 2);
+      } catch (err) {
+        outLogin.textContent = 'Erro: ' + err;
+      }
+    });
+  </script>
+</body>
+</html>
