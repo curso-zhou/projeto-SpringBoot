@@ -4,9 +4,11 @@ import br.pucpr.projeto.auth.dto.RegisterRequest;
 import br.pucpr.projeto.auth.dto.RegisterResponse;
 import br.pucpr.projeto.auth.dto.LoginRequest;
 import br.pucpr.projeto.auth.dto.LoginResponse;
+import br.pucpr.projeto.auth.dto.AuthTokenResponse;
 import br.pucpr.projeto.auth.model.User;
 import br.pucpr.projeto.auth.repository.UserRepository;
 import br.pucpr.projeto.auth.exception.InvalidCredentialsException;
+import br.pucpr.projeto.core.jwt.JwtTokenProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +18,12 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @Transactional
@@ -34,7 +38,19 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public LoginResponse login(LoginRequest request) {
+    public AuthTokenResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.email().toLowerCase())
+                .orElseThrow(InvalidCredentialsException::new);
+        if (!passwordEncoder.matches(request.senha(), user.getSenhaHash())) {
+            throw new InvalidCredentialsException();
+        }
+        String token = jwtTokenProvider.generate(user.getId(), user.getEmail(), user.getRoles());
+        return new AuthTokenResponse(user.getId(), user.getNome(), user.getEmail(), user.getRoles(), token);
+    }
+
+    // Método legacy se ainda for usado em testes
+    @Transactional(readOnly = true)
+    public LoginResponse legacyLogin(LoginRequest request) {
         User user = userRepository.findByEmail(request.email().toLowerCase())
                 .orElseThrow(InvalidCredentialsException::new);
         if (!passwordEncoder.matches(request.senha(), user.getSenhaHash())) {

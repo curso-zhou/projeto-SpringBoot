@@ -2,6 +2,8 @@ package br.pucpr.projeto.auth.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
@@ -24,6 +26,11 @@ public class User {
     @Column(nullable = false)
     private LocalDateTime criadoEm;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role", nullable = false, length = 40)
+    private Set<String> roles = new HashSet<>();
+
     protected User() {}
 
     public User(String nome, String email, String senhaHash) {
@@ -31,6 +38,7 @@ public class User {
         this.email = email.toLowerCase();
         this.senhaHash = senhaHash;
         this.criadoEm = LocalDateTime.now();
+        this.roles.add("ROLE_USER");
     }
 
     public Long getId() { return id; }
@@ -42,4 +50,6 @@ public class User {
     public void setNome(String nome) { this.nome = nome; }
     public void setEmail(String email) { this.email = email; }
     public void setSenhaHash(String senhaHash) { this.senhaHash = senhaHash; }
+    public Set<String> getRoles() { return roles; }
+    public void setRoles(Set<String> roles) { this.roles = roles; }
 }

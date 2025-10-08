@@ -24,7 +24,7 @@
 </head>
 <body>
   <h1>Autenticação - Demo</h1>
-  <p>Use os formulários abaixo para Registrar e depois realizar o Login. Banco H2 em memória: dados somem ao reiniciar.</p>
+  <p>Use os formulários abaixo para Registrar e depois realizar o Login. Banco H2 em memória: dados somem ao reiniciar. Agora com JWT e recursos protegidos.</p>
   <div class="row">
     <div class="card">
       <form id="formRegister">
@@ -61,15 +61,78 @@
       <h3>Resposta Login</h3>
       <pre id="outLogin">(aguardando)</pre>
     </div>
+    <div class="card">
+      <h2>JWT / Usuário</h2>
+      <p><strong>Token:</strong></p>
+      <pre id="outToken" style="max-height:120px;word-wrap:break-word;white-space:pre-wrap">(não autenticado)</pre>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin:.5rem 0 1rem">
+        <button type="button" id="btnMe">/api/auth/me</button>
+        <button type="button" id="btnListCategorias">Listar Categorias</button>
+        <button type="button" id="btnListLivros">Listar Livros</button>
+      </div>
+      <h3>Resultado Operação</h3>
+      <pre id="outProtected">(nenhuma)</pre>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <form id="formCategoria">
+        <h2>Criar Categoria</h2>
+        <fieldset>
+          <label>Nome
+            <input name="nome" required maxlength="120" />
+          </label>
+        </fieldset>
+        <button type="submit">Salvar Categoria</button>
+      </form>
+      <pre id="outCategoria">(sem envio)</pre>
+    </div>
+    <div class="card">
+      <form id="formLivro">
+        <h2>Criar Livro</h2>
+        <fieldset>
+          <label>Título
+            <input name="titulo" required maxlength="200" />
+          </label>
+          <label>Autor
+            <input name="autor" required maxlength="120" />
+          </label>
+          <label>ID Categoria
+            <input name="categoriaId" required type="number" />
+          </label>
+          <label>Preço
+            <input name="preco" required type="number" step="0.01" />
+          </label>
+          <label>ISBN
+            <input name="isbn" maxlength="13" />
+          </label>
+        </fieldset>
+        <button type="submit">Salvar Livro</button>
+      </form>
+      <pre id="outLivro">(sem envio)</pre>
+    </div>
   </div>
   <footer>Demo simples - Spring Boot + Fetch API</footer>
   <script>
-    async function postJson(url, data) {
+    let authToken = null;
+
+    function authHeaders(extra={}) {
+      return Object.assign({}, authToken ? { 'Authorization': 'Bearer ' + authToken } : {}, extra);
+    }
+
+    async function postJson(url, data, includeAuth=false) {
       const resp = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(data)
       });
+      let bodyText;
+      try { bodyText = await resp.json(); } catch { bodyText = await resp.text(); }
+      return { status: resp.status, body: bodyText };
+    }
+
+    async function getJson(url) {
+      const resp = await fetch(url, { headers: authHeaders() });
       let bodyText;
       try { bodyText = await resp.json(); } catch { bodyText = await resp.text(); }
       return { status: resp.status, body: bodyText };
@@ -103,9 +166,64 @@
       try {
         const res = await postJson('/api/auth/login', data);
         outLogin.textContent = JSON.stringify(res, null, 2);
+        if (res.status === 200 && res.body && res.body.token) {
+          authToken = res.body.token;
+          localStorage.setItem('auth.token', authToken);
+          document.getElementById('outToken').textContent = authToken;
+        }
       } catch (err) {
         outLogin.textContent = 'Erro: ' + err;
       }
+    });
+
+    // Restaura token salvo
+    (function restoreToken() {
+      const t = localStorage.getItem('auth.token');
+      if (t) { authToken = t; document.getElementById('outToken').textContent = t; }
+    })();
+
+    document.getElementById('btnMe').addEventListener('click', async () => {
+      const out = document.getElementById('outProtected');
+      out.textContent = 'Carregando /me...';
+      const r = await getJson('/api/auth/me');
+      out.textContent = JSON.stringify(r, null, 2);
+    });
+    document.getElementById('btnListCategorias').addEventListener('click', async () => {
+      const out = document.getElementById('outProtected');
+      out.textContent = 'Carregando categorias...';
+      const r = await getJson('/api/categorias');
+      out.textContent = JSON.stringify(r, null, 2);
+    });
+    document.getElementById('btnListLivros').addEventListener('click', async () => {
+      const out = document.getElementById('outProtected');
+      out.textContent = 'Carregando livros...';
+      const r = await getJson('/api/livros');
+      out.textContent = JSON.stringify(r, null, 2);
+    });
+
+    // Form categoria
+    const formCategoria = document.getElementById('formCategoria');
+    const outCategoria = document.getElementById('outCategoria');
+    formCategoria.addEventListener('submit', async e => {
+      e.preventDefault();
+      outCategoria.textContent = 'Enviando...';
+      const data = Object.fromEntries(new FormData(formCategoria).entries());
+      const res = await postJson('/api/categorias', data, true);
+      outCategoria.textContent = JSON.stringify(res, null, 2);
+    });
+
+    // Form livro
+    const formLivro = document.getElementById('formLivro');
+    const outLivro = document.getElementById('outLivro');
+    formLivro.addEventListener('submit', async e => {
+      e.preventDefault();
+      outLivro.textContent = 'Enviando...';
+      const raw = Object.fromEntries(new FormData(formLivro).entries());
+      // Ajustes de tipos
+      raw.categoriaId = Number(raw.categoriaId);
+      raw.preco = parseFloat(raw.preco);
+      const res = await postJson('/api/livros', raw, true);
+      outLivro.textContent = JSON.stringify(res, null, 2);
     });
   </script>
 </body>

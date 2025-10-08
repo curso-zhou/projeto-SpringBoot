@@ -1,7 +1,7 @@
 package br.pucpr.projeto.auth.terminal;
 
 import br.pucpr.projeto.auth.dto.LoginRequest;
-import br.pucpr.projeto.auth.dto.LoginResponse;
+import br.pucpr.projeto.auth.dto.AuthTokenResponse;
 import br.pucpr.projeto.auth.dto.RegisterRequest;
 import br.pucpr.projeto.auth.dto.RegisterResponse;
 import br.pucpr.projeto.auth.service.UserService;
@@ -91,7 +91,7 @@ public class AuthTerminalRunner implements CommandLineRunner {
         }
         String email = parts[1];
         String senha = parts[2];
-        LoginResponse resp = userService.login(new LoginRequest(email, senha));
-        System.out.printf("[OK] Login bem-sucedido id=%d nome=%s email=%s%n", resp.id(), resp.nome(), resp.email());
+        AuthTokenResponse resp = userService.login(new LoginRequest(email, senha));
+        System.out.printf("[OK] Login bem-sucedido id=%d nome=%s email=%s token=%s%n", resp.id(), resp.nome(), resp.email(), resp.token());
     }
 }
