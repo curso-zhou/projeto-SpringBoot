@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alexandria • Início</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/alexandria.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.min.css" />
+  <style> body { font-family: 'Crimson Text', Georgia, serif; } .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));} .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-1);padding:1rem;} .book-title{font-weight:700;margin:.25rem 0;} .book-author{color:var(--muted);} .toolbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:1rem} .pill{background:rgba(0,0,0,.05);border:1px solid var(--border);padding:.45rem .7rem;border-radius:999px} .input-search{min-width:260px} .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent-2),var(--accent));box-shadow:var(--shadow-2);} .menu{display:flex;gap:.5rem;align-items:center} .muted{color:var(--muted);} .section{margin:1rem 0 1.25rem} .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:1px solid #0002;background:#fff8;box-shadow:var(--shadow-2);cursor:pointer} .icon-btn:hover{background:#fff} dialog.modal{border:none;padding:0;background:transparent} dialog.modal::backdrop{background:rgba(0,0,0,.35)} .modal-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-width:640px;width:min(100%,640px);overflow:hidden} .modal-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(139,94,60,.12),rgba(139,94,60,.05))} .modal-body{padding:1.25rem} .modal-footer{padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end;background:#ffffffc2}
+  </style>
+</head>
+<body>
+  <header class="header">
+    <img src="/img/Alexandre.png" alt="Alexandria" class="logo-img" />
+    <div class="brand">Alexandria</div>
+  </header>
+  <main class="auth-wrapper">
+    <div class="toolbar">
+      <div class="menu">
+        <a class="btn" href="/home.html">Início</a>
+        <a class="btn" href="/index.html">Demo</a>
+      </div>
+      <div class="menu">
+        <span id="userEmail" class="pill muted">Carregando...</span>
+        <button class="pill" id="btnToggleAlerts" title="Alternar alertas">Switch Alert</button>
+        <button class="icon-btn" id="btnOpenProfile" title="Editar conta" aria-label="Editar conta">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" fill="currentColor"/>
+          </svg>
+        </button>
+        <button class="btn" id="btnLogout">Sair</button>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="row two">
+        <div>
+          <label for="q">Pesquisar livros</label>
+          <input id="q" class="input input-search" placeholder="Título, autor ou ISBN" />
+        </div>
+        <div>
+          <label for="categoria">Categoria</label>
+          <select id="categoria" class="input">
+            <option value="">Todas</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 style="margin:0 0 .5rem">Livros em destaque</h2>
+      <div id="books" class="grid"></div>
+      <div id="booksEmpty" class="helper" style="display:none">Nenhum livro encontrado.</div>
+    </section>
+
+    <!-- Pop-up de Perfil agora renderizado via SweetAlert2 -->
+
+    <div class="site-footer">© Alexandria • Construído com Spring Boot</div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.all.min.js"></script>
+  <script src="/js/ui.js?v=20251009"></script>
+  <script>
+    // Utils
+    function authHeaders(extra={}) {
+      const t = localStorage.getItem('auth.token');
+      return { ...(t ? { 'Authorization': 'Bearer ' + t } : {}), ...extra };
+    }
+    async function getJson(url) {
+      const resp = await fetch(url, { headers: authHeaders() });
+      let body; try { body = await resp.json(); } catch { body = await resp.text(); }
+      return { status: resp.status, body };
+    }
+    async function postJson(url, data, method='POST') {
+      const resp = await fetch(url, { method, headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data) });
+      let body; try { body = await resp.json(); } catch { body = await resp.text(); }
+      return { status: resp.status, body };
+    }
+
+    // Auth guard: require token
+    (function guard(){
+      const t = localStorage.getItem('auth.token');
+      if (!t) { window.location.href = '/login.html'; }
+    })();
+
+    // Predefined books fallback (if API not available or empty)
+    const predefined = [
+      { id: 1, titulo: 'A Biblioteca Invisível', autor: 'Genevieve Cogman', preco: 49.90, isbn: '978857686' },
+      { id: 2, titulo: 'O Nome do Vento', autor: 'Patrick Rothfuss', preco: 59.90, isbn: '9788599296' },
+      { id: 3, titulo: 'O Conto da Aia', autor: 'Margaret Atwood', preco: 44.90, isbn: '978853592' },
+      { id: 4, titulo: 'Cem Anos de Solidão', autor: 'Gabriel García Márquez', preco: 39.90, isbn: '978853591' },
+    ];
+
+    async function loadUser() {
+      const el = document.getElementById('userEmail');
+      const r = await getJson('/api/auth/me');
+      if (r.status === 200 && r.body) {
+        el.textContent = r.body.email || '(sem email)';
+        if (window.ui) ui.success('Bem-vindo(a), ' + (r.body.nome || r.body.email));
+      } else {
+        el.textContent = 'Não autenticado';
+      }
+    }
+
+    function renderBooks(items) {
+      const container = document.getElementById('books');
+      const empty = document.getElementById('booksEmpty');
+      container.innerHTML = '';
+      if (!items || items.length === 0) { empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      for (const b of items) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="book-title">${b.titulo}</div>
+          <div class="book-author">${b.autor}</div>
+          <div class="muted small">ISBN: ${b.isbn || '-'}</div>
+          <div class="muted small">Preço: R$ ${Number(b.preco).toFixed(2)}</div>
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    async function loadCategories() {
+      const sel = document.getElementById('categoria');
+      try {
+        const r = await getJson('/api/categorias');
+        if (r.status === 200 && Array.isArray(r.body)) {
+          for (const c of r.body) {
+            const opt = document.createElement('option');
+            opt.value = c.id; opt.textContent = c.nome; sel.appendChild(opt);
+          }
+        }
+      } catch {}
+    }
+
+    async function loadBooks() {
+      try {
+        const r = await getJson('/api/livros');
+        if (r.status === 200 && Array.isArray(r.body)) {
+          window.__books = r.body;
+          renderBooks(window.__books);
+          return;
+        }
+      } catch {}
+      window.__books = predefined;
+      renderBooks(window.__books);
+    }
+
+    function applyFilters() {
+      const q = document.getElementById('q').value.trim().toLowerCase();
+      const cat = document.getElementById('categoria').value;
+      let items = window.__books || [];
+      if (q) {
+        items = items.filter(b => `${b.titulo} ${b.autor} ${b.isbn}`.toLowerCase().includes(q));
+      }
+      if (cat) {
+        items = items.filter(b => String(b.categoriaId) === String(cat));
+      }
+      renderBooks(items);
+    }
+
+    document.getElementById('q').addEventListener('input', applyFilters);
+    document.getElementById('categoria').addEventListener('change', applyFilters);
+
+    document.getElementById('btnLogout').addEventListener('click', () => {
+      localStorage.removeItem('auth.token');
+      window.location.href = '/login.html';
+    });
+
+    function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+    async function showProfilePopup(){
+      let nome = '', email = '';
+      try {
+        const r = await getJson('/api/auth/me');
+        if (r.status === 200 && r.body) { nome = r.body.nome || ''; email = r.body.email || ''; }
+      } catch {}
+      if (!window.Swal) { if (window.ui) { await ui.info('Abra o editor de conta pelo navegador.'); } return; }
+      const result = await Swal.fire({
+        title: 'Editar conta',
+        html: `
+          <div class="row two" style="text-align:left">
+            <div>
+              <label for="swal-profile-nome">Nome</label>
+              <input id="swal-profile-nome" class="input" value="${esc(nome)}" />
+            </div>
+            <div>
+              <label for="swal-profile-email">Email</label>
+              <input id="swal-profile-email" class="input" type="email" value="${esc(email)}" />
+            </div>
+          </div>
+          <div class="row two" style="margin-top:.75rem;text-align:left">
+            <div>
+              <label for="swal-profile-senha-atual">Senha atual</label>
+              <input id="swal-profile-senha-atual" class="input" type="password" />
+            </div>
+            <div>
+              <label for="swal-profile-nova-senha">Nova senha</label>
+              <input id="swal-profile-nova-senha" class="input" type="password" />
+            </div>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Salvar',
+        cancelButtonText: 'Cancelar',
+        customClass: { popup: 'alex-swal-popup', title: 'alex-swal-title', actions: 'alex-swal-actions', confirmButton: 'alex-btn', cancelButton: 'alex-btn-secondary' },
+        buttonsStyling: false,
+        preConfirm: () => {
+          return {
+            nome: document.getElementById('swal-profile-nome').value.trim(),
+            email: document.getElementById('swal-profile-email').value.trim(),
+            senhaAtual: document.getElementById('swal-profile-senha-atual').value,
+            novaSenha: document.getElementById('swal-profile-nova-senha').value
+          };
+        }
+      });
+      if (result.isConfirmed) {
+        const payload = result.value || {};
+        for (const k of Object.keys(payload)) {
+          if (payload[k] === '') delete payload[k];
+        }
+        const resp = await fetch('/api/auth/profile', {
+          method: 'PUT',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(payload)
+        });
+        if (resp.status === 200) {
+          if (window.ui) { ui.success('Perfil atualizado'); }
+          await loadUser();
+        } else {
+          // Mostrar erro de atualização de perfil
+          const msg = 'Falha ao atualizar perfil';
+          if (window.ui) { ui.error(msg); }
+        }
+      }
+    }
+    document.getElementById('btnOpenProfile').addEventListener('click', showProfilePopup);
+
+    // Bootstrap
+    loadUser();
+    (async ()=>{ await loadCategories(); await loadBooks(); })();
+
+    // Toggle global de alertas
+    const btnToggle = document.getElementById('btnToggleAlerts');
+    if (btnToggle) {
+      btnToggle.addEventListener('click', ()=>{
+        if (!window.ui) return;
+        const mode = ui.toggle();
+        ui.info('Modo de alerta: ' + mode);
+        btnToggle.textContent = 'Switch Alert ('+mode+')';
+      });
+      if (window.ui) btnToggle.textContent = 'Switch Alert ('+ui.mode+')';
+    }
+  </script>
+</body>
+</html>

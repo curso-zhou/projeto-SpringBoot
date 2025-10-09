@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alexandria • Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/alexandria.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.min.css" />
+  <style> body { font-family: 'Crimson Text', Georgia, serif; } </style>
+</head>
+<body>
+  <header class="header">
+    <img src="/img/Alexandre.png" alt="Alexandria" class="logo-img" />
+    <div class="brand">Alexandria</div>
+  </header>
+
+  <main class="auth-wrapper">
+    <div class="auth-grid">
+      <section class="auth-card">
+        <div class="card-header">
+          <h1>Bem-vindo(a) de volta</h1>
+          <div class="helper">Acesse sua conta para continuar explorando sua biblioteca</div>
+        </div>
+        <div class="card-body">
+          <form id="formLogin" class="vstack" novalidate>
+            <div class="row">
+              <div>
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" required class="input" placeholder="voce@exemplo.com" />
+              </div>
+              <div>
+                <label for="senha">Senha</label>
+                <input id="senha" name="senha" type="password" required class="input" placeholder="••••••••" />
+              </div>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn" type="submit">Entrar</button>
+          </form>
+          <div id="alertLogin" class="alert small" style="display:none;margin-top:1rem"></div>
+        </div>
+        <div class="card-footer small">
+          Ainda não possui conta? <a class="link" href="/register.html">Crie uma conta</a>
+        </div>
+      </section>
+
+      <aside class="auth-card" aria-label="Dica">
+        <div class="card-body">
+          <h2 style="margin-top:0">Um refúgio de leitura</h2>
+          <p>O projeto Alexandria é pensado para ser um espaço aconchegante, com tons terrosos e textura de papel, como uma biblioteca ensolarada no fim da tarde.</p>
+          <p class="helper">Use o email e senha cadastrados para receber um token JWT e acessar áreas protegidas.</p>
+        </div>
+      </aside>
+    </div>
+
+    <div class="site-footer">© Alexandria • Construído com Spring Boot</div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.all.min.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    const alertLogin = document.getElementById('alertLogin');
+    function showAlert(msg, ok=false) {
+      alertLogin.textContent = msg;
+      alertLogin.className = 'alert small ' + (ok ? 'ok' : 'err');
+      alertLogin.style.display = 'block';
+    }
+
+    async function postJson(url, data) {
+      const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      let body;
+      try { body = await resp.json(); } catch { body = await resp.text(); }
+      return { status: resp.status, body };
+    }
+
+    const form = document.getElementById('formLogin');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      alertLogin.style.display = 'none';
+      const data = Object.fromEntries(new FormData(form).entries());
+      const r = await postJson('/api/auth/login', data);
+      if (r.status === 200 && r.body && r.body.token) {
+        localStorage.setItem('auth.token', r.body.token);
+        if (window.ui) ui.success('Login realizado com sucesso.');
+        else showAlert('Login realizado com sucesso.', true);
+        setTimeout(() => { window.location.href = '/home.html'; }, 700);
+      } else {
+        if (window.ui) { ui.error('Falha no login. Verifique suas credenciais.'); }
+        else { showAlert('Falha no login. Verifique suas credenciais.'); }
+      }
+    });
+  </script>
+</body>
+</html>
