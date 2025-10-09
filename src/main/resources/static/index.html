@@ -27,6 +27,28 @@
   <p>Use os formulários abaixo para Registrar e depois realizar o Login. Banco H2 em memória: dados somem ao reiniciar. Agora com JWT e recursos protegidos.</p>
   <div class="row">
     <div class="card">
+      <form id="formProfile">
+        <h2>Editar Perfil</h2>
+        <fieldset>
+          <label>Nome
+            <input name="nome" maxlength="120" />
+          </label>
+          <label>Email
+            <input name="email" type="email" />
+          </label>
+          <label>Senha Atual
+            <input name="senhaAtual" type="password" minlength="6" />
+          </label>
+          <label>Nova Senha
+            <input name="novaSenha" type="password" minlength="6" />
+          </label>
+        </fieldset>
+        <button type="button" id="btnLoadProfile">Carregar Perfil</button>
+        <button type="submit">Salvar Perfil</button>
+      </form>
+      <pre id="outProfile">(sem ação)</pre>
+    </div>
+    <div class="card">
       <form id="formRegister">
         <h2>Registro</h2>
         <fieldset>
@@ -224,6 +246,44 @@
       raw.preco = parseFloat(raw.preco);
       const res = await postJson('/api/livros', raw, true);
       outLivro.textContent = JSON.stringify(res, null, 2);
+    });
+
+    // Profile: load and update
+    const formProfile = document.getElementById('formProfile');
+    const outProfile = document.getElementById('outProfile');
+    const btnLoadProfile = document.getElementById('btnLoadProfile');
+
+    btnLoadProfile.addEventListener('click', async () => {
+      outProfile.textContent = 'Carregando perfil...';
+      const r = await getJson('/api/auth/profile');
+      outProfile.textContent = JSON.stringify(r, null, 2);
+      if (r.status === 200 && r.body) {
+        formProfile.nome.value = r.body.nome || '';
+        formProfile.email.value = r.body.email || '';
+      }
+    });
+
+    formProfile.addEventListener('submit', async e => {
+      e.preventDefault();
+      outProfile.textContent = 'Atualizando perfil...';
+      const data = Object.fromEntries(new FormData(formProfile).entries());
+      // Remove empty fields to avoid clearing values unintentionally
+      for (const k of Object.keys(data)) {
+        if (data[k] === '') delete data[k];
+      }
+      const resp = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(data)
+      });
+      let bodyText;
+      try { bodyText = await resp.json(); } catch { bodyText = await resp.text(); }
+      outProfile.textContent = JSON.stringify({ status: resp.status, body: bodyText }, null, 2);
+      if (resp.status === 200 && bodyText && bodyText.email) {
+        // If email changed, update token storage behavior depends on backend; keep token - user may need to re-login if token invalidated
+        formProfile.senhaAtual.value = '';
+        formProfile.novaSenha.value = '';
+      }
     });
   </script>
 </body>

@@ -4,6 +4,8 @@ import br.pucpr.projeto.auth.dto.RegisterRequest;
 import br.pucpr.projeto.auth.dto.RegisterResponse;
 import br.pucpr.projeto.auth.dto.LoginRequest;
 import br.pucpr.projeto.auth.dto.AuthTokenResponse;
+import br.pucpr.projeto.auth.dto.UpdateProfileRequest;
+import br.pucpr.projeto.auth.dto.UpdateProfileResponse;
 import br.pucpr.projeto.auth.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -40,5 +42,20 @@ public class AuthController {
                 "email", user.getUsername(),
                 "roles", user.getAuthorities().stream().map(a -> a.getAuthority()).toList()
         ));
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<UpdateProfileResponse> getProfile(@AuthenticationPrincipal UserDetails user) {
+        if (user == null) return ResponseEntity.status(401).build();
+        var profile = userService.getProfileByEmail(user.getUsername());
+        return ResponseEntity.ok(profile);
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<UpdateProfileResponse> updateProfile(@AuthenticationPrincipal UserDetails user,
+                                                               @Valid @RequestBody UpdateProfileRequest req) {
+        if (user == null) return ResponseEntity.status(401).build();
+        var profile = userService.updateProfile(user.getUsername(), req);
+        return ResponseEntity.ok(profile);
     }
 }
