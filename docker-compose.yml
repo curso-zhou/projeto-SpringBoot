@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: projeto
+      MYSQL_USER: projeto
+      MYSQL_PASSWORD: projeto123
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      # Run initialization SQL on first startup (create_db.sql must be present in project root)
+      - ./create_db.sql:/docker-entrypoint-initdb.d/create_db.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:

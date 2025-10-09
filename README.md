@@ -64,3 +64,27 @@ As requisições são feitas via Fetch API para os endpoints `/api/auth/register
 - Página de perfil com edição mais rica
 - Cobertura de testes de serviço
 
+## Usando MySQL (local via Docker) 🐬
+
+Criamos um profile `mysql` para executar a aplicação contra um banco MySQL.
+
+1. Suba o banco com Docker Compose (requer Docker):
+
+```powershell
+docker-compose up -d
+```
+
+2. Inicie a aplicação usando o profile `mysql`:
+
+```powershell
+./gradlew.bat bootRun --args='--spring.profiles.active=mysql'
+```
+
+As credenciais configuradas no `docker-compose.yml` e em `src/main/resources/application-mysql.properties` são:
+
+- banco: `projeto`
+- usuário: `projeto`
+- senha: `projeto123`
+
+Se quiser conectar um MySQL externo, altere a URL/usuário/senha em `application-mysql.properties` ou defina variáveis de ambiente.
+

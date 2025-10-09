@@ -1,0 +1,50 @@
+-- create_db.sql
+-- Cria o banco de dados e o usuário usados pelo projeto
+
+CREATE DATABASE IF NOT EXISTS `projeto`
+  CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci;
+
+-- Cria usuário (ajuste host '%' para 'localhost' se desejar restringir conexões)
+CREATE USER IF NOT EXISTS 'projeto'@'%' IDENTIFIED BY 'projeto123';
+
+GRANT ALL PRIVILEGES ON `projeto`.* TO 'projeto'@'%';
+FLUSH PRIVILEGES;
+
+-- DDL das tabelas principais (caso deseje criar manualmente; o Hibernate também pode criá-las automaticamente)
+
+-- categorias
+CREATE TABLE IF NOT EXISTS categorias (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(120) NOT NULL,
+  UNIQUE KEY uk_categorias_nome (nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- users
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  criado_em TIMESTAMP NOT NULL,
+  email VARCHAR(180) NOT NULL,
+  nome VARCHAR(120) NOT NULL,
+  senha_hash VARCHAR(255) NOT NULL,
+  UNIQUE KEY uk_users_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- livros
+CREATE TABLE IF NOT EXISTS livros (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  autor VARCHAR(120) NOT NULL,
+  isbn VARCHAR(13),
+  preco DECIMAL(12,2) NOT NULL,
+  titulo VARCHAR(200) NOT NULL,
+  categoria_id BIGINT NOT NULL,
+  CONSTRAINT fk_livros_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- user_roles (element collection)
+CREATE TABLE IF NOT EXISTS user_roles (
+  user_id BIGINT NOT NULL,
+  role VARCHAR(40) NOT NULL,
+  PRIMARY KEY (user_id, role),
+  CONSTRAINT fk_user_roles_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
