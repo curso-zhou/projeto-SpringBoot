@@ -51,6 +51,14 @@ As páginas estáticas ficam em `src/main/resources/static`.
 1. Inicie a aplicação:
 ```
 ./gradlew.bat bootRun
+
+SE DER ERRO:
+# opção 1 - passar argumento
+./gradlew.bat bootRun --args='--spring.profiles.active=mysql'
+
+# opção 2 - setar variável de ambiente na sessão atual
+$env:SPRING_PROFILES_ACTIVE='mysql'
+./gradlew.bat bootRun
 ```
 2. Acesse: http://localhost:8080/
 3. Preencha o formulário de Registro. O resultado aparecerá na área de resposta.
