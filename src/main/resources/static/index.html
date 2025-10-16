@@ -4,10 +4,13 @@
   <meta charset="UTF-8" />
   <title>Alexandria • Demo</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/alexandria.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.min.css" />
   <style>
-    body { max-width: 1100px; margin: 0 auto; }
+    body { max-width: 1100px; margin: 0 auto; font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .topbar { display:flex; align-items:center; justify-content:space-between; padding: .5rem 1rem 0; }
     .topbar .actions { display:flex; gap:.5rem; }
     .row { display: flex; gap: 1rem; flex-wrap: wrap; }
@@ -107,6 +110,22 @@
       </div>
       <h3>Resultado Operação</h3>
       <pre id="outProtected">(nenhuma)</pre>
+    </div>
+    <div class="card">
+      <form id="formAddIsbn">
+        <h2>Adicionar por ISBN</h2>
+        <fieldset>
+          <label>ISBN (10 ou 13 dígitos)
+            <input name="isbn" maxlength="20" placeholder="978..." />
+          </label>
+        </fieldset>
+        <button type="submit">Adicionar à minha coleção</button>
+        <button type="button" id="btnListColecao">Listar minha coleção</button>
+      </form>
+      <h3>Resposta Adição</h3>
+      <pre id="outIsbn">(aguardando)</pre>
+      <h3>Minha Coleção</h3>
+      <pre id="outColecao">(vazia)</pre>
     </div>
   </div>
   <div class="row">
@@ -240,6 +259,69 @@
       const r = await getJson('/api/livros');
       out.textContent = JSON.stringify(r, null, 2);
     });
+
+    // Adicionar por ISBN
+    const formAddIsbn = document.getElementById('formAddIsbn');
+    const outIsbn = document.getElementById('outIsbn');
+    const outColecao = document.getElementById('outColecao');
+    const btnListColecao = document.getElementById('btnListColecao');
+
+    function isBlank(value){ return !value || !String(value).trim(); }
+    async function addIsbn(isbn){
+      outIsbn.textContent = 'Adicionando...';
+      const res = await postJson('/api/colecao/add', { isbn });
+      outIsbn.textContent = JSON.stringify(res, null, 2);
+      return res;
+    }
+    function handleAddIsbnResponse(res){
+      if (res.status === 200) {
+        if (window.ui) ui.success('Livro adicionado à coleção');
+        formAddIsbn.isbn.value = '';
+        return listarColecao();
+      }
+      if (res.status === 400) {
+        const msg = res.body && res.body.erro ? res.body.erro : '';
+        if (window.ui) ui.warn('Não foi possível adicionar', msg);
+        return;
+      }
+      if (res.status === 401) {
+        if (window.ui) ui.error('Não autorizado', 'Faça login e tente novamente');
+      }
+    }
+
+    formAddIsbn.addEventListener('submit', async e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(formAddIsbn).entries());
+      const isbn = (data.isbn || '').trim();
+      if (isBlank(isbn)) {
+        if (window.ui) ui.warn('Informe o ISBN');
+        return;
+      }
+      if (!authToken) {
+        if (window.ui) ui.error('Você precisa estar logado');
+        return;
+      }
+      try {
+        const res = await addIsbn(isbn);
+        await handleAddIsbnResponse(res);
+      } catch (err) {
+        outIsbn.textContent = 'Erro: ' + err;
+      }
+    });
+
+    async function listarColecao(){
+      outColecao.textContent = 'Carregando coleção...';
+      const r = await getJson('/api/colecao');
+      if (r.status === 200 && Array.isArray(r.body)) {
+        // Apresentação amigável
+        const itens = r.body.map(it => ({ id: it.id, titulo: it.titulo, autor: it.autor, isbn: it.isbn, adicionadoEm: it.adicionadoEm }));
+        outColecao.textContent = JSON.stringify(itens, null, 2);
+      } else {
+        outColecao.textContent = JSON.stringify(r, null, 2);
+      }
+    }
+
+    btnListColecao.addEventListener('click', listarColecao);
 
     // Form categoria
     const formCategoria = document.getElementById('formCategoria');

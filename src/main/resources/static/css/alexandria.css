@@ -1,4 +1,4 @@
-/* Alexandria theme - cozy, brown tones with subtle paper texture */
+/* Alexandria theme - cozy, brown tones with parchment (papyrus) look */
 :root {
   --bg-1: #efe5dc;
   --bg-2: #e7dbcf;
@@ -6,6 +6,7 @@
   --muted: #6b5a50;
   --accent: #8b5e3c; /* chocolate brown */
   --accent-2: #a6785a; /* lighter brown */
+  --burn: #3b1f13; /* burnt edge tone */
   --card: #ffffffee;
   --border: #00000014;
   --radius: 14px;
@@ -20,13 +21,21 @@ html, body {
 body {
   margin: 0;
   color: var(--text);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.5;
-  /* Subtle layered background with parchment-like warmth and a faint grain */
+  /* Papyrus background with lightly burnt edges and subtle grain */
   background:
-    radial-gradient(1200px 800px at 10% -10%, rgba(255,255,255,0.7), rgba(255,255,255,0) 70%),
-    radial-gradient(900px 700px at 110% 0%, rgba(255,255,255,0.6), rgba(255,255,255,0) 70%),
-    repeating-linear-gradient(45deg, rgba(60,40,20,0.03) 0 2px, rgba(60,40,20,0.02) 2px 4px),
+    /* Burnt corners */
+    radial-gradient(900px 700px at -10% -10%, rgba(59,31,19,0.28), rgba(255,255,255,0) 60%),
+    radial-gradient(1000px 800px at 110% -10%, rgba(59,31,19,0.24), rgba(255,255,255,0) 60%),
+    radial-gradient(1000px 800px at -10% 110%, rgba(59,31,19,0.24), rgba(255,255,255,0) 60%),
+    radial-gradient(900px 700px at 110% 110%, rgba(59,31,19,0.28), rgba(255,255,255,0) 60%),
+    /* Vignette */
+    radial-gradient(1200px 900px at 50% 30%, rgba(0,0,0,0.06), rgba(0,0,0,0) 65%),
+    /* Paper fibers / grain */
+    repeating-linear-gradient(35deg, rgba(60,40,20,0.03) 0 2px, rgba(60,40,20,0.02) 2px 4px),
+    repeating-linear-gradient(125deg, rgba(60,40,20,0.02) 0 3px, rgba(60,40,20,0.015) 3px 6px),
+    /* Warm parchment base */
     linear-gradient(120deg, var(--bg-1), var(--bg-2) 40%, #e3d6c8 60%, var(--bg-1));
 }
 
@@ -192,7 +201,7 @@ label { display: block; font-weight: 600; margin: .2rem 0 .35rem; }
   color: var(--text);
 }
 .alex-swal-title {
-  font-family: 'Crimson Text', Georgia, serif;
+  font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-weight: 700;
   letter-spacing: .2px;
   color: var(--text);
@@ -221,7 +230,7 @@ label { display: block; font-weight: 600; margin: .2rem 0 .35rem; }
   box-shadow: 0 14px 40px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.06);
   color: var(--text);
 }
-.alex-swal-toast-title { font-family: 'Crimson Text', Georgia, serif; font-weight: 700; }
+.alex-swal-toast-title { font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 700; }
 .alex-swal-toast .swal2-timer-progress-bar { background: var(--accent-2); }
 
 /* Fallback (quando SweetAlert2 não carrega) */
@@ -237,7 +246,7 @@ label { display: block; font-weight: 600; margin: .2rem 0 .35rem; }
   min-width: 240px;
 }
 .alex-toast .icon { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(255,255,255,.7); }
-.alex-toast .title { font-family: 'Crimson Text', Georgia, serif; font-weight: 700; }
+.alex-toast .title { font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 700; }
 .alex-toast .close { cursor: pointer; opacity: .7; padding: .2rem .3rem; }
 .alex-toast .bar { height: 3px; grid-column: 1 / -1; background: var(--accent-2); border-radius: 0 0 12px 12px; margin: .3rem -.8rem -.65rem; animation: alex-toast-bar 3.2s linear forwards; }
 @keyframes alex-toast-bar { from { width: 100%; } to { width: 0%; } }
@@ -249,6 +258,6 @@ label { display: block; font-weight: 600; margin: .2rem 0 .35rem; }
 .alex-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 2000; }
 .alex-modal-panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.25); max-width: 560px; width: min(100%, 560px); overflow: hidden; }
 .alex-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(139,94,60,.12), rgba(139,94,60,.05)); }
-.alex-modal-title { font-family: 'Crimson Text', Georgia, serif; font-weight: 700; }
+.alex-modal-title { font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 700; }
 .alex-modal-body { padding: 1.25rem; }
 .alex-modal-footer { padding: 1rem 1.25rem; border-top: 1px solid var(--border); display: flex; gap: .5rem; justify-content: flex-end; background: #ffffffc2; }

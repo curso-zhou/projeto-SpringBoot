@@ -6,10 +6,10 @@
   <title>Alexandria • Início</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/alexandria.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.min.css" />
-  <style> body { font-family: 'Crimson Text', Georgia, serif; } .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));} .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-1);padding:1rem;} .book-title{font-weight:700;margin:.25rem 0;} .book-author{color:var(--muted);} .toolbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:1rem} .pill{background:rgba(0,0,0,.05);border:1px solid var(--border);padding:.45rem .7rem;border-radius:999px} .input-search{min-width:260px} .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent-2),var(--accent));box-shadow:var(--shadow-2);} .menu{display:flex;gap:.5rem;align-items:center} .muted{color:var(--muted);} .section{margin:1rem 0 1.25rem} .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:1px solid #0002;background:#fff8;box-shadow:var(--shadow-2);cursor:pointer} .icon-btn:hover{background:#fff} dialog.modal{border:none;padding:0;background:transparent} dialog.modal::backdrop{background:rgba(0,0,0,.35)} .modal-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-width:640px;width:min(100%,640px);overflow:hidden} .modal-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(139,94,60,.12),rgba(139,94,60,.05))} .modal-body{padding:1.25rem} .modal-footer{padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end;background:#ffffffc2}
+  <style> body { font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; } .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));} .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-1);padding:1rem;} .book-title{font-weight:700;margin:.25rem 0;} .book-author{color:var(--muted);} .toolbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:1rem} .pill{background:rgba(0,0,0,.05);border:1px solid var(--border);padding:.45rem .7rem;border-radius:999px} .input-search{min-width:260px} .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent-2),var(--accent));box-shadow:var(--shadow-2);} .menu{display:flex;gap:.5rem;align-items:center} .muted{color:var(--muted);} .section{margin:1rem 0 1.25rem} .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:1px solid #0002;background:#fff8;box-shadow:var(--shadow-2);cursor:pointer} .icon-btn:hover{background:#fff} dialog.modal{border:none;padding:0;background:transparent} dialog.modal::backdrop{background:rgba(0,0,0,.35)} .modal-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-width:640px;width:min(100%,640px);overflow:hidden} .modal-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(139,94,60,.12),rgba(139,94,60,.05))} .modal-body{padding:1.25rem} .modal-footer{padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end;background:#ffffffc2}
   </style>
 </head>
 <body>
@@ -54,6 +54,21 @@
       <h2 style="margin:0 0 .5rem">Livros em destaque</h2>
       <div id="books" class="grid"></div>
       <div id="booksEmpty" class="helper" style="display:none">Nenhum livro encontrado.</div>
+    </section>
+
+    <section class="section">
+      <h2 style="margin:0 0 .5rem">Minha Coleção</h2>
+      <form id="formAddIsbnHome" class="row two" style="align-items:flex-end">
+        <div>
+          <label for="isbnHome">Adicionar por ISBN</label>
+          <input id="isbnHome" name="isbn" class="input" placeholder="978..." maxlength="20" />
+        </div>
+        <div>
+          <button type="submit" class="btn">Adicionar à minha coleção</button>
+        </div>
+      </form>
+      <div id="colecaoEmpty" class="helper" style="display:none">Sua coleção está vazia.</div>
+      <div id="colecaoList" class="grid"></div>
     </section>
 
     <!-- Pop-up de Perfil agora renderizado via SweetAlert2 -->
@@ -122,6 +137,34 @@
         `;
         container.appendChild(card);
       }
+    }
+
+    // Coleção
+    function renderColecao(items) {
+      const list = document.getElementById('colecaoList');
+      const empty = document.getElementById('colecaoEmpty');
+      list.innerHTML = '';
+      if (!Array.isArray(items) || items.length === 0) { empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      for (const it of items) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="book-title">${it.titulo || '-'}</div>
+          <div class="book-author">${it.autor || ''}</div>
+          <div class="muted small">ISBN: ${it.isbn || '-'}</div>
+          <div class="muted small">Adicionado em: ${it.adicionadoEm || ''}</div>
+        `;
+        list.appendChild(card);
+      }
+    }
+
+    async function loadColecao() {
+      try {
+        const r = await getJson('/api/colecao');
+        if (r.status === 200) { renderColecao(r.body); }
+        else { renderColecao([]); }
+      } catch { renderColecao([]); }
     }
 
     async function loadCategories() {
@@ -243,6 +286,30 @@
     // Bootstrap
     loadUser();
     (async ()=>{ await loadCategories(); await loadBooks(); })();
+    loadColecao();
+
+    // Handler: adicionar por ISBN
+    document.getElementById('formAddIsbnHome').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('isbnHome');
+      const isbn = String(input.value||'').trim();
+      if (!isbn) { if (window.ui) ui.warn('Informe o ISBN'); return; }
+      try {
+        const r = await postJson('/api/colecao/add', { isbn });
+        if (r.status === 200) {
+          if (window.ui) ui.success('Livro adicionado à coleção');
+          input.value = '';
+          await loadColecao();
+        } else if (r.status === 400) {
+          const msg = r.body && r.body.erro ? r.body.erro : 'Falha ao adicionar';
+          if (window.ui) ui.warn('Não foi possível adicionar', msg);
+        } else if (r.status === 401) {
+          if (window.ui) ui.error('Não autorizado', 'Faça login e tente novamente');
+        }
+      } catch (err) {
+        if (window.ui) ui.error('Erro inesperado', String(err));
+      }
+    });
 
     // Toggle global de alertas
     const btnToggle = document.getElementById('btnToggleAlerts');
