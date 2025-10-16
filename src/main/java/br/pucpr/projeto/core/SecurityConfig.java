@@ -2,6 +2,7 @@ package br.pucpr.projeto.core;
 
 import br.pucpr.projeto.core.jwt.JwtAuthFilter;
 import br.pucpr.projeto.core.jwt.JwtTokenProvider;
+import br.pucpr.projeto.auth.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,7 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtTokenProvider jwt) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtTokenProvider jwt, UserRepository users) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -25,7 +26,7 @@ public class SecurityConfig {
             .requestMatchers(
                 "/", 
                 "/index.html",
-                   "/home.html",
+                         "/home.html",
                 "/login.html",
                 "/register.html",
                                 "/css/**",
@@ -36,10 +37,11 @@ public class SecurityConfig {
                 "/api/auth/login", 
                 "/h2/**"
             ).permitAll()
+            .requestMatchers("/admin.html").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtAuthFilter(jwt), UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(new JwtAuthFilter(jwt, users), UsernamePasswordAuthenticationFilter.class);
 
         http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
         return http.build();

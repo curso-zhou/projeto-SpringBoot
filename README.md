@@ -74,6 +74,11 @@ Na página Home (http://localhost:8080/home.html), após logar:
 
 As requisições são feitas via Fetch API para os endpoints `/api/auth/register` e `/api/auth/login`.
 
+### Preço dos livros
+- Ao adicionar por ISBN, o sistema tenta obter o preço automaticamente.
+- Fallback atual: Google Books (saleInfo) em moeda BRL. Se houver valor, ele será exibido; caso contrário, a UI mostra “Fora de estoque”.
+- Integração com Amazon Brasil (PA-API) não está habilitada no momento. Para ativar, é necessário informar credenciais válidas da Amazon Product Advertising API (Partner Tag, Access Key e Secret Key) e habilitar a integração no serviço de preços. Podemos implementar isso assim que você disponibilizar as credenciais.
+
 ## Próximos Passos (idéias)
 - Melhorar responsividade e animações das telas
 - Adicionar página de recuperação de senha

@@ -26,14 +26,14 @@ public class LivroController {
     @GetMapping
     public List<LivroResponse> list() {
         return livros.findAll().stream().map(l -> new LivroResponse(
-                l.getId(), l.getTitulo(), l.getAutor(), l.getCategoria().getId(), l.getCategoria().getNome(), l.getPreco(), l.getIsbn()
+                l.getId(), l.getTitulo(), l.getAutor(), l.getCategoria().getId(), l.getCategoria().getNome(), l.getPreco(), l.getIsbn(), l.getImagemCapaUrl()
         )).toList();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<LivroResponse> get(@PathVariable Long id) {
         return livros.findById(id)
-                .map(l -> ResponseEntity.ok(new LivroResponse(l.getId(), l.getTitulo(), l.getAutor(), l.getCategoria().getId(), l.getCategoria().getNome(), l.getPreco(), l.getIsbn())))
+                .map(l -> ResponseEntity.ok(new LivroResponse(l.getId(), l.getTitulo(), l.getAutor(), l.getCategoria().getId(), l.getCategoria().getNome(), l.getPreco(), l.getIsbn(), l.getImagemCapaUrl())))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -41,10 +41,14 @@ public class LivroController {
     public ResponseEntity<LivroResponse> create(@Valid @RequestBody LivroRequest request) {
         var categoria = categorias.findById(request.categoriaId()).orElse(null);
         if (categoria == null) return ResponseEntity.unprocessableEntity().build();
-        var livro = livros.save(new br.pucpr.projeto.livros.model.Livro(
-                request.titulo(), request.autor(), categoria, request.preco(), request.isbn()
-        ));
-        var resp = new LivroResponse(livro.getId(), livro.getTitulo(), livro.getAutor(), categoria.getId(), categoria.getNome(), livro.getPreco(), livro.getIsbn());
+    var livro = new br.pucpr.projeto.livros.model.Livro(
+        request.titulo(), request.autor(), categoria, request.preco(), request.isbn()
+    );
+    if (request.imagemCapaUrl() != null && !request.imagemCapaUrl().isBlank()) {
+        livro.setImagemCapaUrl(request.imagemCapaUrl());
+    }
+    livro = livros.save(livro);
+    var resp = new LivroResponse(livro.getId(), livro.getTitulo(), livro.getAutor(), categoria.getId(), categoria.getNome(), livro.getPreco(), livro.getIsbn(), livro.getImagemCapaUrl());
         return ResponseEntity.created(URI.create("/api/livros/" + livro.getId())).body(resp);
     }
 
@@ -60,8 +64,11 @@ public class LivroController {
         livro.setCategoria(categoria);
         livro.setPreco(request.preco());
         livro.setIsbn(request.isbn());
+        if (request.imagemCapaUrl() != null && !request.imagemCapaUrl().isBlank()) {
+            livro.setImagemCapaUrl(request.imagemCapaUrl());
+        }
         livros.save(livro);
-        var resp = new LivroResponse(livro.getId(), livro.getTitulo(), livro.getAutor(), categoria.getId(), categoria.getNome(), livro.getPreco(), livro.getIsbn());
+        var resp = new LivroResponse(livro.getId(), livro.getTitulo(), livro.getAutor(), categoria.getId(), categoria.getNome(), livro.getPreco(), livro.getIsbn(), livro.getImagemCapaUrl());
         return ResponseEntity.ok(resp);
     }
 

@@ -8,5 +8,6 @@ public record LivroRequest(
         @NotBlank @Size(max = 120) String autor,
         @NotNull Long categoriaId,
         @NotNull @DecimalMin(value = "0.0", inclusive = false) BigDecimal preco,
-        @Size(max = 13) String isbn
+        @Size(max = 13) String isbn,
+        @Size(max = 600) String imagemCapaUrl
 ) {}

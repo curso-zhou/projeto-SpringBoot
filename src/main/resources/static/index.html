@@ -124,8 +124,9 @@
       </form>
       <h3>Resposta Adição</h3>
       <pre id="outIsbn">(aguardando)</pre>
-      <h3>Minha Coleção</h3>
-      <pre id="outColecao">(vazia)</pre>
+  <h3>Minha Coleção</h3>
+  <div id="colecaoCards" class="row"></div>
+  <pre id="outColecao" style="display:none">(vazia)</pre>
     </div>
   </div>
   <div class="row">
@@ -159,6 +160,9 @@
           </label>
           <label>ISBN
             <input name="isbn" maxlength="13" />
+          </label>
+          <label>URL da Capa (opcional)
+            <input name="imagemCapaUrl" maxlength="600" placeholder="https://..." />
           </label>
         </fieldset>
         <button type="submit">Salvar Livro</button>
@@ -263,7 +267,8 @@
     // Adicionar por ISBN
     const formAddIsbn = document.getElementById('formAddIsbn');
     const outIsbn = document.getElementById('outIsbn');
-    const outColecao = document.getElementById('outColecao');
+  const outColecao = document.getElementById('outColecao');
+  const colecaoCards = document.getElementById('colecaoCards');
     const btnListColecao = document.getElementById('btnListColecao');
 
     function isBlank(value){ return !value || !String(value).trim(); }
@@ -310,13 +315,44 @@
     });
 
     async function listarColecao(){
+      colecaoCards.innerHTML = '';
+      outColecao.style.display = 'block';
       outColecao.textContent = 'Carregando coleção...';
       const r = await getJson('/api/colecao');
       if (r.status === 200 && Array.isArray(r.body)) {
-        // Apresentação amigável
-        const itens = r.body.map(it => ({ id: it.id, titulo: it.titulo, autor: it.autor, isbn: it.isbn, adicionadoEm: it.adicionadoEm }));
-        outColecao.textContent = JSON.stringify(itens, null, 2);
+        outColecao.style.display = 'none';
+        for (const it of r.body) {
+          const card = document.createElement('div');
+          card.className = 'card';
+          const img = it.imagemCapaUrl ? `<img src="${it.imagemCapaUrl}" alt="Capa" style="width:100%;max-width:220px;max-height:260px;object-fit:contain;border-radius:8px;display:block;margin-bottom:.5rem" onerror="this.style.display='none'" />` : '';
+            const preco = (typeof it.preco === 'number') ? Number(it.preco) : (it.preco && it.preco.amount) ? Number(it.preco.amount) : it.preco;
+            card.innerHTML = `
+              ${img}
+              <div class="book-title">${it.titulo||'-'}</div>
+              <div class="book-author">${it.autor||''}</div>
+              <div class="muted small">ISBN: ${it.isbn||'-'}</div>
+              <div class="muted small">Preço: ${preco ? ('R$ ' + Number(preco).toFixed(2)) : 'Fora de estoque'}</div>
+              <div style="margin-top:.5rem;display:flex;gap:.5rem;justify-content:flex-end">
+                <button class="btn" data-del="${it.id}">Remover</button>
+              </div>
+            `;
+          colecaoCards.appendChild(card);
+        }
+        for (const btn of colecaoCards.querySelectorAll('[data-del]')) {
+          btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const id = btn.dataset.del;
+            const resp = await fetch('/api/colecao/' + id, { method: 'DELETE', headers: authHeaders() });
+            if (resp.status === 200 || resp.status === 204) {
+              if (window.ui) ui.success('Removido da coleção');
+              await listarColecao();
+            } else {
+              if (window.ui) ui.warn('Não foi possível remover');
+            }
+          });
+        }
       } else {
+        outColecao.style.display = 'block';
         outColecao.textContent = JSON.stringify(r, null, 2);
       }
     }

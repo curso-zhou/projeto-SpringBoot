@@ -1,5 +1,6 @@
 package br.pucpr.projeto.core.jwt;
 
+import br.pucpr.projeto.auth.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,14 +12,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
+    private final UserRepository users;
 
-    public JwtAuthFilter(JwtTokenProvider tokenProvider) {
+    public JwtAuthFilter(JwtTokenProvider tokenProvider, UserRepository users) {
         this.tokenProvider = tokenProvider;
+        this.users = users;
     }
 
     @Override
@@ -28,13 +32,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String token = header.substring(7);
             try {
                 var data = tokenProvider.parse(token);
+                // Carrega as roles mais recentes do usuário para evitar problemas com tokens antigos
+        Set<String> roles = users.findByEmail(data.email().toLowerCase())
+            .map(br.pucpr.projeto.auth.model.User::getRoles)
+            .orElse(data.roles());
                 var auth = new UsernamePasswordAuthenticationToken(
                         data.email(),
                         null,
-                        data.roles().stream().map(SimpleGrantedAuthority::new).collect(Collectors.toSet())
+                        roles.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toSet())
                 );
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            } catch (Exception ignored) {}
+            } catch (Exception _) {
+                // Token inválido/expirado — segue sem autenticação
+            }
         }
         filterChain.doFilter(request, response);
     }

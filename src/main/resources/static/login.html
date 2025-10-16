@@ -85,10 +85,12 @@
         localStorage.setItem('auth.token', r.body.token);
         if (window.ui) ui.success('Login realizado com sucesso.');
         else showAlert('Login realizado com sucesso.', true);
-        setTimeout(() => { window.location.href = '/home.html'; }, 700);
+        const roles = Array.isArray(r.body.roles) ? r.body.roles : [];
+        const isAdmin = roles.includes('ROLE_ADMIN') || roles.includes('ADMIN');
+        setTimeout(() => { globalThis.location.href = isAdmin ? '/admin.html' : '/home.html'; }, 600);
       } else {
-        if (window.ui) { ui.error('Falha no login. Verifique suas credenciais.'); }
-        else { showAlert('Falha no login. Verifique suas credenciais.'); }
+        if (globalThis.ui) ui.error('Falha no login. Verifique suas credenciais.');
+        else showAlert('Falha no login. Verifique suas credenciais.');
       }
     });
   </script>

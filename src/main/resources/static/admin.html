@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alexandria • Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/alexandria.css" />
+  <style>
+    body{font-family:'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;}
+    .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-1);padding:1rem}
+    .row{display:flex;gap:.5rem;flex-wrap:wrap}
+    .small{font-size:.9rem}
+    .muted{color:var(--muted)}
+    .book-title{font-weight:700;margin:.25rem 0}
+  </style>
+</head>
+<body>
+  <header class="header">
+    <img src="/img/Alexandre.png" alt="Alexandria" class="logo-img" />
+    <div class="brand">Alexandria — Admin</div>
+  </header>
+  <main class="auth-wrapper">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div class="row">
+        <a class="btn" href="/home.html">Home</a>
+        <a class="btn" href="/index.html">Demo</a>
+      </div>
+      <div class="row">
+        <button id="btnDeleteAll" class="btn">Excluir TODOS os livros</button>
+      </div>
+    </div>
+
+    <section>
+      <h2 style="margin:0 0 .5rem">Gerenciar Livros</h2>
+      <div id="books" class="grid"></div>
+      <div id="booksEmpty" class="helper" style="display:none">Nenhum livro encontrado.</div>
+    </section>
+  </main>
+
+  <script>
+    function authHeaders(extra={}) {
+      const t = localStorage.getItem('auth.token');
+      return { ...(t ? { 'Authorization': 'Bearer ' + t } : {}), ...extra };
+    }
+    async function getJson(url) {
+      const resp = await fetch(url, { headers: authHeaders() });
+      let body; try { body = await resp.json(); } catch { body = await resp.text(); }
+      return { status: resp.status, body };
+    }
+    async function sendJson(url, data, method='POST') {
+      const resp = await fetch(url, { method, headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(data) });
+      let body; try { body = await resp.json(); } catch { body = await resp.text(); }
+      return { status: resp.status, body };
+    }
+
+    (function(){
+      const t = localStorage.getItem('auth.token');
+      if (!t) { globalThis.location.href = '/login.html'; return; }
+      fetch('/api/auth/me', { headers: authHeaders() })
+        .then(resp => { if (resp.status !== 200) { throw new Error('unauth'); } return resp.json(); })
+        .then(me => {
+          const roles = Array.isArray(me.roles) ? me.roles : [];
+          const isAdmin = roles.includes('ROLE_ADMIN') || roles.includes('ADMIN');
+          if (!isAdmin) { globalThis.location.href = '/home.html'; return; }
+          loadBooks();
+        })
+        .catch(() => { globalThis.location.href = '/login.html'; });
+    })();
+
+    async function loadBooks(){
+      const r = await getJson('/api/admin/livros');
+      const container = document.getElementById('books');
+      const empty = document.getElementById('booksEmpty');
+      container.innerHTML='';
+      if (r.status!==200 || !Array.isArray(r.body) || r.body.length===0){ empty.style.display='block'; return; }
+      empty.style.display='none';
+      for (const b of r.body){
+        const card = document.createElement('div');
+        card.className='card';
+        const img = b.imagemCapaUrl? `<img src="${b.imagemCapaUrl}" alt="Capa" style="width:100%;max-height:220px;object-fit:contain;border-radius:8px;margin-bottom:.5rem" onerror="this.style.display='none'" />` : '';
+        card.innerHTML = `
+          ${img}
+          <div class="book-title">${b.titulo}</div>
+          <div class="muted small">${b.autor}</div>
+          <div class="muted small">ISBN: ${b.isbn||'-'}</div>
+          <div class="row" style="margin-top:.5rem">
+            <input class="input" name="titulo" placeholder="Título" value="${b.titulo||''}" />
+            <input class="input" name="autor" placeholder="Autor" value="${b.autor||''}" />
+            <input class="input" name="isbn" placeholder="ISBN" value="${b.isbn||''}" />
+            <input class="input" name="imagemCapaUrl" placeholder="URL da capa" value="${b.imagemCapaUrl||''}" />
+            <input class="input" name="categoriaId" placeholder="Categoria Id" type="number" value="${b.categoriaId||''}" />
+            <input class="input" name="preco" placeholder="Preço" type="number" step="0.01" value="${b.preco||''}" />
+          </div>
+          <div class="row" style="margin-top:.5rem;justify-content:flex-end">
+            <button class="btn" data-save="${b.id}">Salvar</button>
+            <button class="btn" data-del="${b.id}">Excluir</button>
+          </div>
+        `;
+        container.appendChild(card);
+      }
+      for (const btn of container.querySelectorAll('[data-save]')){
+        btn.addEventListener('click', async (e)=>{
+          e.preventDefault();
+          const id = btn.dataset.save;
+          const card = btn.closest('.card');
+          const data = Object.fromEntries([...card.querySelectorAll('input')].map(i=>[i.name, i.type==='number'? Number(i.value): i.value]));
+          const res = await sendJson('/api/admin/livros/'+id, data, 'PUT');
+          if (res.status===200){ alert('Salvo'); await loadBooks(); } else { alert('Falha ao salvar'); }
+        });
+      }
+      for (const btn of container.querySelectorAll('[data-del]')){
+        btn.addEventListener('click', async (e)=>{
+          e.preventDefault();
+          const id = btn.dataset.del;
+          const url = '/api/admin/livros/'+id+'?force=true';
+          const resp = await fetch(url, { method:'DELETE', headers: authHeaders() });
+          if (resp.status===204){ alert('Excluído'); await loadBooks(); }
+          else if (resp.status===409){ alert('Livro em uso. Use exclusão forçada.'); }
+          else { alert('Falha ao excluir'); }
+        });
+      }
+    }
+
+    document.getElementById('btnDeleteAll').addEventListener('click', async ()=>{
+      if (!confirm('Tem certeza que deseja excluir TODOS os livros? Esta ação é irreversível.')) return;
+      const resp = await fetch('/api/admin/livros?force=true', { method:'DELETE', headers: authHeaders() });
+      if (resp.status===204){ alert('Todos os livros foram excluídos'); await loadBooks(); }
+      else { alert('Falha ao excluir em massa'); }
+    });
+
+  // carregamento inicial feito no guard acima
+  </script>
+</body>
+</html>

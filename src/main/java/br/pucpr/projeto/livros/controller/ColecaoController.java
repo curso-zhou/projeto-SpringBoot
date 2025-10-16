@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -18,9 +17,10 @@ public class ColecaoController {
 
     public ColecaoController(ColecaoService service) { this.service = service; }
 
-    public record ItemResponse(Long id, Long livroId, String titulo, String autor, String isbn, LocalDateTime adicionadoEm) {
+    public record ItemResponse(Long id, Long livroId, String titulo, String autor, String isbn, String imagemCapaUrl, java.math.BigDecimal preco) {
         public static ItemResponse of(ColecaoItem it) {
-            return new ItemResponse(it.getId(), it.getLivro().getId(), it.getLivro().getTitulo(), it.getLivro().getAutor(), it.getLivro().getIsbn(), it.getAdicionadoEm());
+            var l = it.getLivro();
+            return new ItemResponse(it.getId(), l.getId(), l.getTitulo(), l.getAutor(), l.getIsbn(), l.getImagemCapaUrl(), l.getPreco());
         }
     }
 

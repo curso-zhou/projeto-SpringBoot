@@ -19,11 +19,12 @@ public class ColecaoService {
     private final LivroRepository livros;
     private final ColecaoItemRepository colecao;
     private final ExternalBookLookupService lookup;
+    private final PriceService priceService;
     private final CategoriaRepository categorias;
     private static final String USER_NOT_FOUND = "Usuário não encontrado";
 
-    public ColecaoService(UserRepository users, LivroRepository livros, ColecaoItemRepository colecao, ExternalBookLookupService lookup, CategoriaRepository categorias) {
-        this.users = users; this.livros = livros; this.colecao = colecao; this.lookup = lookup; this.categorias = categorias;
+    public ColecaoService(UserRepository users, LivroRepository livros, ColecaoItemRepository colecao, ExternalBookLookupService lookup, CategoriaRepository categorias, PriceService priceService) {
+        this.users = users; this.livros = livros; this.colecao = colecao; this.lookup = lookup; this.categorias = categorias; this.priceService = priceService;
     }
 
     @Transactional
@@ -48,6 +49,11 @@ public class ColecaoService {
             var categoria = categorias.findByNomeIgnoreCase("Importados").orElseGet(() -> categorias.save(new br.pucpr.projeto.livros.model.Categoria("Importados")));
             // Preço padrão 0.00
             livro = new Livro(info.titulo(), info.autor() == null ? "" : info.autor(), categoria, BigDecimal.ZERO, sanitized);
+            if (info.capa() != null && !info.capa().isBlank()) {
+                livro.setImagemCapaUrl(info.capa());
+            }
+            // Tenta obter preço (se houver integração configurada)
+            priceService.getAmazonBrPrice(sanitized).ifPresent(livro::setPreco);
             livro = livros.save(livro);
         }
 
