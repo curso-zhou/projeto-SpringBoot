@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS livros (
   isbn VARCHAR(13),
   preco DECIMAL(12,2) NOT NULL,
   titulo VARCHAR(200) NOT NULL,
+  imagem_capa_url VARCHAR(600),
   categoria_id BIGINT NOT NULL,
   CONSTRAINT fk_livros_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -48,3 +49,21 @@ CREATE TABLE IF NOT EXISTS user_roles (
   PRIMARY KEY (user_id, role),
   CONSTRAINT fk_user_roles_user FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- colecao_itens (vínculo usuário x livro)
+CREATE TABLE IF NOT EXISTS colecao_itens (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id BIGINT NOT NULL,
+  livro_id BIGINT NOT NULL,
+  adicionado_em TIMESTAMP NOT NULL,
+  CONSTRAINT uk_colecao_usuario_livro UNIQUE (usuario_id, livro_id),
+  CONSTRAINT fk_colecao_usuario FOREIGN KEY (usuario_id) REFERENCES users(id),
+  CONSTRAINT fk_colecao_livro FOREIGN KEY (livro_id) REFERENCES livros(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Índices auxiliares para consultas
+CREATE INDEX IF NOT EXISTS idx_colecao_usuario_adicionado_em ON colecao_itens(usuario_id, adicionado_em);
+CREATE INDEX IF NOT EXISTS idx_colecao_livro ON colecao_itens(livro_id);
+
+-- Categoria padrão (usada como fallback no fluxo de importação por ISBN)
+INSERT IGNORE INTO categorias (nome) VALUES ('Importados');
