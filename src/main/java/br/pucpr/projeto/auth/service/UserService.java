@@ -35,6 +35,14 @@ public class UserService {
         }
         String hash = passwordEncoder.encode(request.senha());
         User user = new User(request.nome(), request.email(), hash);
+        // Se solicitado, torna o usuário também vendedor
+        try {
+            if (request.vendedor() != null && request.vendedor()) {
+                user.getRoles().add("ROLE_VENDEDOR");
+            }
+        } catch (NoSuchMethodError | Exception e) {
+            // caso o DTO não possua o campo (compatibilidade), ignora
+        }
         userRepository.save(user);
         return new RegisterResponse(user.getId(), user.getNome(), user.getEmail());
     }

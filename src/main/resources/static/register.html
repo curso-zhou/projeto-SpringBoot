@@ -47,6 +47,10 @@
               </div>
             </div>
             <div class="spacer"></div>
+            <div style="margin:0.5rem 0;display:flex;align-items:center;gap:.5rem">
+              <input id="vendedor" name="vendedor" type="checkbox" />
+              <label for="vendedor" style="margin:0">Sou vendedor (quero adicionar livros)</label>
+            </div>
             <button class="btn" type="submit">Registrar</button>
           </form>
           <div id="alertRegister" class="alert small" style="display:none;margin-top:1rem"></div>
@@ -89,13 +93,15 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       alertRegister.style.display = 'none';
-      const data = Object.fromEntries(new FormData(form).entries());
+  const data = Object.fromEntries(new FormData(form).entries());
       if (data.senha !== data.confirmaSenha) {
         if (window.ui) { ui.warn('As senhas não coincidem.'); }
         else { showAlert('As senhas não coincidem.'); }
         return;
       }
-      const r = await postJson('/api/auth/register', { nome: data.nome, email: data.email, senha: data.senha });
+  // Envia campo vendedor como booleano (true se checkbox marcada)
+  const payload = { nome: data.nome, email: data.email, senha: data.senha, vendedor: !!data.vendedor };
+  const r = await postJson('/api/auth/register', payload);
       if (r.status === 201) {
         if (window.ui) { ui.success('Cadastro realizado com sucesso!'); }
         else { showAlert('Cadastro realizado com sucesso!', true); }

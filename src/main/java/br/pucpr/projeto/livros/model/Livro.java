@@ -1,6 +1,7 @@
 package br.pucpr.projeto.livros.model;
 
 import jakarta.persistence.*;
+import br.pucpr.projeto.auth.model.User;
 import java.math.BigDecimal;
 
 @Entity
@@ -27,6 +28,10 @@ public class Livro {
     @Column(name = "imagem_capa_url", length = 600)
     private String imagemCapaUrl;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendedor_id")
+    private User vendedor;
+
     protected Livro() {}
 
     public Livro(String titulo, String autor, Categoria categoria, BigDecimal preco, String isbn) {
@@ -40,10 +45,12 @@ public class Livro {
     public BigDecimal getPreco() { return preco; }
     public String getIsbn() { return isbn; }
     public String getImagemCapaUrl() { return imagemCapaUrl; }
+    public User getVendedor() { return vendedor; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
     public void setAutor(String autor) { this.autor = autor; }
     public void setCategoria(Categoria categoria) { this.categoria = categoria; }
     public void setPreco(BigDecimal preco) { this.preco = preco; }
     public void setIsbn(String isbn) { this.isbn = isbn; }
     public void setImagemCapaUrl(String imagemCapaUrl) { this.imagemCapaUrl = imagemCapaUrl; }
+    public void setVendedor(User vendedor) { this.vendedor = vendedor; }
 }

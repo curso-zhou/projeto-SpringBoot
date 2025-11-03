@@ -4,6 +4,9 @@ import br.pucpr.projeto.livros.dto.LivroRequest;
 import br.pucpr.projeto.livros.dto.LivroResponse;
 import br.pucpr.projeto.livros.repository.CategoriaRepository;
 import br.pucpr.projeto.livros.repository.LivroRepository;
+import br.pucpr.projeto.auth.repository.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +21,10 @@ public class LivroController {
 
     private final LivroRepository livros;
     private final CategoriaRepository categorias;
+    private final UserRepository users;
 
-    public LivroController(LivroRepository livros, CategoriaRepository categorias) {
-        this.livros = livros; this.categorias = categorias;
+    public LivroController(LivroRepository livros, CategoriaRepository categorias, UserRepository users) {
+        this.livros = livros; this.categorias = categorias; this.users = users;
     }
 
     @GetMapping
@@ -44,6 +48,12 @@ public class LivroController {
     var livro = new br.pucpr.projeto.livros.model.Livro(
         request.titulo(), request.autor(), categoria, request.preco(), request.isbn()
     );
+    // associa vendedor quando disponível (pega do SecurityContext)
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth != null && auth.isAuthenticated() && auth.getName() != null && !auth.getName().isBlank()) {
+        var u = users.findByEmail(auth.getName()).orElse(null);
+        if (u != null) livro.setVendedor(u);
+    }
     if (request.imagemCapaUrl() != null && !request.imagemCapaUrl().isBlank()) {
         livro.setImagemCapaUrl(request.imagemCapaUrl());
     }
@@ -59,6 +69,16 @@ public class LivroController {
         var livro = opt.get();
         var categoria = categorias.findById(request.categoriaId()).orElse(null);
         if (categoria == null) return ResponseEntity.unprocessableEntity().build();
+        // Permissões: apenas admin ou vendedor dono do livro podem editar
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null || auth.getName().isBlank()) {
+            return ResponseEntity.status(401).build();
+        }
+        var current = users.findByEmail(auth.getName()).orElse(null);
+        boolean isAdmin = current != null && current.getRoles().contains("ROLE_ADMIN");
+        boolean isOwner = current != null && livro.getVendedor() != null && livro.getVendedor().getId().equals(current.getId());
+        if (!isAdmin && !isOwner) return ResponseEntity.status(403).build();
+
         livro.setTitulo(request.titulo());
         livro.setAutor(request.autor());
         livro.setCategoria(categoria);
@@ -74,7 +94,17 @@ public class LivroController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!livros.existsById(id)) return ResponseEntity.notFound().build();
+        var opt = livros.findById(id);
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+        var livro = opt.get();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null || auth.getName().isBlank()) {
+            return ResponseEntity.status(401).build();
+        }
+        var current = users.findByEmail(auth.getName()).orElse(null);
+        boolean isAdmin = current != null && current.getRoles().contains("ROLE_ADMIN");
+        boolean isOwner = current != null && livro.getVendedor() != null && livro.getVendedor().getId().equals(current.getId());
+        if (!isAdmin && !isOwner) return ResponseEntity.status(403).build();
         livros.deleteById(id);
         return ResponseEntity.noContent().build();
     }

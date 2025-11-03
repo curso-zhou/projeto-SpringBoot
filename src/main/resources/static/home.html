@@ -110,15 +110,108 @@
     ];
 
     let __isAdmin = false;
+    let __isVendedor = false;
     async function loadUser() {
       const el = document.getElementById('userEmail');
       const r = await getJson('/api/auth/me');
       if (r.status === 200 && r.body) {
         el.textContent = r.body.email || '(sem email)';
-        try { __isAdmin = Array.isArray(r.body.roles) && r.body.roles.includes('ROLE_ADMIN'); } catch {}
+        try { 
+          __isAdmin = Array.isArray(r.body.roles) && r.body.roles.includes('ROLE_ADMIN'); 
+          __isVendedor = Array.isArray(r.body.roles) && r.body.roles.includes('ROLE_VENDEDOR');
+        } catch {}
+        // Se for vendedor, cria botão visível para adicionar livros
+        try {
+          if (__isVendedor) {
+            const menu = document.querySelector('.toolbar .menu');
+            if (menu && !document.getElementById('btnOpenAddLivro')) {
+              const btn = document.createElement('button');
+              btn.className = 'btn';
+              btn.id = 'btnOpenAddLivro';
+              btn.textContent = 'Adicionar Livro';
+              btn.addEventListener('click', openAddLivroModal);
+              // inserir antes do botão de logout (último botão)
+              const logout = document.getElementById('btnLogout');
+              if (logout) menu.insertBefore(btn, logout);
+              else menu.appendChild(btn);
+            }
+          }
+        } catch(e) { /* não crítico */ }
         if (globalThis.ui) ui.success('Bem-vindo(a), ' + (r.body.nome || r.body.email));
       } else {
         el.textContent = 'Não autenticado';
+      }
+    }
+
+    async function openAddLivroModal() {
+      // Carrega categorias para o select
+      let cats = [];
+      try { const cr = await getJson('/api/categorias'); if (cr.status === 200 && Array.isArray(cr.body)) cats = cr.body; } catch {}
+      const opts = cats.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+      if (!globalThis.Swal) { if (globalThis.ui) ui.info('Para adicionar livros abra a página de administração.'); return; }
+      const res = await Swal.fire({
+        title: 'Adicionar Livro',
+        html: `
+          <div class="row two" style="text-align:left">
+            <div>
+              <label for="swal-livro-titulo">Título</label>
+              <input id="swal-livro-titulo" class="input" />
+            </div>
+            <div>
+              <label for="swal-livro-autor">Autor</label>
+              <input id="swal-livro-autor" class="input" />
+            </div>
+          </div>
+          <div style="margin-top:.75rem;text-align:left">
+            <label for="swal-livro-categoria">Categoria</label>
+            <select id="swal-livro-categoria" class="input">${opts}</select>
+          </div>
+          <div class="row two" style="margin-top:.75rem;text-align:left">
+            <div>
+              <label for="swal-livro-preco">Preço</label>
+              <input id="swal-livro-preco" class="input" type="number" step="0.01" />
+            </div>
+            <div>
+              <label for="swal-livro-isbn">ISBN</label>
+              <input id="swal-livro-isbn" class="input" />
+            </div>
+          </div>
+          <div style="margin-top:.75rem;text-align:left">
+            <label for="swal-livro-capa">URL imagem de capa (opcional)</label>
+            <input id="swal-livro-capa" class="input" />
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Criar',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => ({
+          titulo: document.getElementById('swal-livro-titulo').value.trim(),
+          autor: document.getElementById('swal-livro-autor').value.trim(),
+          categoriaId: document.getElementById('swal-livro-categoria').value,
+          preco: document.getElementById('swal-livro-preco').value,
+          isbn: document.getElementById('swal-livro-isbn').value.trim(),
+          imagemCapaUrl: document.getElementById('swal-livro-capa').value.trim()
+        })
+      });
+      if (res.isConfirmed) {
+        const payload = res.value || {};
+        // normaliza valores
+        if (!payload.titulo || !payload.autor || !payload.categoriaId || !payload.preco) {
+          if (globalThis.ui) ui.warn('Preencha título, autor, categoria e preço');
+          return;
+        }
+        try {
+          const body = { titulo: payload.titulo, autor: payload.autor, categoriaId: Number(payload.categoriaId), preco: Number(payload.preco), isbn: payload.isbn || null, imagemCapaUrl: payload.imagemCapaUrl || null };
+          const r = await postJson('/api/livros', body);
+          if (r.status === 201) {
+            if (globalThis.ui) ui.success('Livro criado com sucesso');
+            await loadBooks();
+          } else {
+            const msg = r.body && r.body.erro ? r.body.erro : 'Falha ao criar livro';
+            if (globalThis.ui) ui.error(msg);
+          }
+        } catch (e) { if (globalThis.ui) ui.error('Erro ao criar livro'); }
       }
     }
 

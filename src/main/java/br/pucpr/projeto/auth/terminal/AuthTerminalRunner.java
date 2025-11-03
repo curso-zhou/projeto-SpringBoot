@@ -80,7 +80,7 @@ public class AuthTerminalRunner implements CommandLineRunner {
             System.out.println("Nome inválido");
             return;
         }
-        RegisterResponse resp = userService.register(new RegisterRequest(nome, email, senha));
+    RegisterResponse resp = userService.register(new RegisterRequest(nome, email, senha, false));
         System.out.printf("[OK] Usuário registrado id=%d email=%s%n", resp.id(), resp.email());
     }
 

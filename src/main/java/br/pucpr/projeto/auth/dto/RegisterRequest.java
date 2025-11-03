@@ -16,4 +16,7 @@ public record RegisterRequest(
         @NotBlank(message = "Senha é obrigatória")
         @Size(min = 6, max = 60, message = "Senha deve ter entre 6 e 60 caracteres")
         String senha
+,
+        // Se true, registra o usuário também como vendedor (ROLE_VENDEDOR)
+        Boolean vendedor
 ) {}

@@ -11,6 +11,9 @@ CREATE USER IF NOT EXISTS 'projeto'@'%' IDENTIFIED BY 'projeto123';
 GRANT ALL PRIVILEGES ON `projeto`.* TO 'projeto'@'%';
 FLUSH PRIVILEGES;
 
+-- Seleciona o banco criado para as próximas instruções DDL
+USE `projeto`;
+
 -- DDL das tabelas principais (caso deseje criar manualmente; o Hibernate também pode criá-las automaticamente)
 
 -- categorias
@@ -38,9 +41,19 @@ CREATE TABLE IF NOT EXISTS livros (
   preco DECIMAL(12,2) NOT NULL,
   titulo VARCHAR(200) NOT NULL,
   imagem_capa_url VARCHAR(600),
+  vendedor_id BIGINT,
   categoria_id BIGINT NOT NULL,
-  CONSTRAINT fk_livros_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+  CONSTRAINT fk_livros_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id),
+  CONSTRAINT fk_livros_vendedor FOREIGN KEY (vendedor_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Cria índice idx_livros_vendedor se não existir (compatível com várias versões do MySQL)
+SET @idx_count := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE table_schema = DATABASE() AND table_name = 'livros' AND index_name = 'idx_livros_vendedor');
+SET @sql := IF(@idx_count = 0, 'CREATE INDEX idx_livros_vendedor ON livros(vendedor_id)', 'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- user_roles (element collection)
 CREATE TABLE IF NOT EXISTS user_roles (
@@ -61,9 +74,20 @@ CREATE TABLE IF NOT EXISTS colecao_itens (
   CONSTRAINT fk_colecao_livro FOREIGN KEY (livro_id) REFERENCES livros(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Índices auxiliares para consultas
-CREATE INDEX IF NOT EXISTS idx_colecao_usuario_adicionado_em ON colecao_itens(usuario_id, adicionado_em);
-CREATE INDEX IF NOT EXISTS idx_colecao_livro ON colecao_itens(livro_id);
+-- Índices auxiliares para consultas (compatível com versões que não suportam IF NOT EXISTS)
+SET @idx_count := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE table_schema = DATABASE() AND table_name = 'colecao_itens' AND index_name = 'idx_colecao_usuario_adicionado_em');
+SET @sql := IF(@idx_count = 0, 'CREATE INDEX idx_colecao_usuario_adicionado_em ON colecao_itens(usuario_id, adicionado_em)', 'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @idx_count := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE table_schema = DATABASE() AND table_name = 'colecao_itens' AND index_name = 'idx_colecao_livro');
+SET @sql := IF(@idx_count = 0, 'CREATE INDEX idx_colecao_livro ON colecao_itens(livro_id)', 'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Categoria padrão (usada como fallback no fluxo de importação por ISBN)
 INSERT IGNORE INTO categorias (nome) VALUES ('Importados');
